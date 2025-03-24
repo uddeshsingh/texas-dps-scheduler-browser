@@ -44,7 +44,7 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
         try {
 
             const browser = await puppeteer.launch({
-                headless: true,
+                headless: false,
                 executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
                 userDataDir: './user_profile', // <--- this persists your browser profile
                 slowMo: _.random(10, 30),
@@ -56,7 +56,8 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
                     '--disable-dev-shm-usage',
                     `--window-size=${1200 + _.random(100, 300)},${800 + _.random(100, 200)}`,
                     '--disable-features=IsolateOrigins,site-per-process',
-                    '--lang=en-US,en;q=0.9'
+                    '--lang=en-US,en;q=0.9',
+                    '--disable-infobars',
                 ],
                 ignoreDefaultArgs: ['--enable-automation'], // 👈 THIS is the key!
                 timeout: 60000,
@@ -109,14 +110,9 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
             
             // Move cursor and click English button
             log.dev('Selecting language...');
-            const languageButton = await page.$('.container > button');
-            if (languageButton) {
-            await cursor.move(languageButton);
+            await cursor.move('.container > button');
             await nodeTimer.setTimeout(_.random(500, 1200));
             await cursor.click();
-            } else {
-            log.warn('⚠️ Language selection button not found');
-            }
             
             await page.waitForNetworkIdle({ idleTime: 1000 })
                 .catch(() => log.dev('Network idle timeout, continuing anyway'));
@@ -126,14 +122,7 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
             
             // Move cursor and switch to español with natural movement
             log.dev('Switching language...');
-            const langSwitch = await page.$('.v-toolbar__content button:nth-child(2)');
-            if (langSwitch) {
-                await cursor.move(langSwitch);
-                await nodeTimer.setTimeout(_.random(300, 800));
-                await cursor.click();
-            } else {
-                log.warn('⚠️ Language switch button not found');
-            }
+            await cursor.move('.v-toolbar__content button:nth-child(2)');
             await nodeTimer.setTimeout(_.random(300, 800));
             await cursor.click();
             
@@ -147,13 +136,13 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
             
             // Fill form with human-like typing and pauses between fields
             await humanType(page, '.v-input:nth-child(2) input', config.personalInfo.firstName);
-            await nodeTimer.setTimeout(_.random(800, 1600));
+            await nodeTimer.setTimeout(_.random(100, 600));
             
             await humanType(page, '.v-input:nth-child(3) input', config.personalInfo.lastName);
-            await nodeTimer.setTimeout(_.random(700, 1500));
+            await nodeTimer.setTimeout(_.random(100, 500));
             
             await humanType(page, '.v-input:nth-child(4) input', config.personalInfo.dob.replaceAll('/', ''));
-            await nodeTimer.setTimeout(_.random(1000, 2000));
+            await nodeTimer.setTimeout(_.random(100, 200));
             
             await humanType(page, '.v-input:nth-child(5) input', config.personalInfo.lastFourSSN);
             
@@ -203,7 +192,7 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
             });
             
             // Random pause after scrolling
-            await nodeTimer.setTimeout(_.random(1500, 3000));
+            await nodeTimer.setTimeout(_.random(500, 1000));
             
             // Set up network request interception more selectively
             await page.setRequestInterception(true);
@@ -256,15 +245,9 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
                 page.waitForSelector('.v-card__actions.text-center > button', { visible: true })
                     .then(async () => {
                         // Move cursor to button with natural movement
-                        const loginButton = await page.$('.v-card__actions.text-center > button');
-                        if (loginButton) {
-                            await cursor.move(loginButton);
-                            await nodeTimer.setTimeout(_.random(800, 1800));
-                            await cursor.click();
-                        } else {
-                            log.error('❌ Login button not found');
-                            reject(new Error('Login button not found'));
-                        }
+                        await cursor.move('.v-card__actions.text-center > button');
+                        await nodeTimer.setTimeout(_.random(800, 1800)); // Hover pause
+                        await cursor.click();
                         
                         // Check for CAPTCHA dialog and handle it
                         try {
@@ -299,15 +282,9 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
                     await nodeTimer.setTimeout(_.random(500, 1000));
                     
                     // Click the "try again" button
-                    const retryButton = await page.$('.v-dialog--active > div > div > button');
-                    if (retryButton) {
-                        await cursor.move(retryButton);
-                        await nodeTimer.setTimeout(_.random(400, 900));
-                        await cursor.click();
-                    } else {
-                        log.warn('⚠️ Retry button not found during CAPTCHA retry');
-                        return;
-                    }
+                    await cursor.move('.v-dialog--active > div > div > button');
+                    await nodeTimer.setTimeout(_.random(400, 900));
+                    await cursor.click();
                     
                     // Wait between actions
                     await nodeTimer.setTimeout(_.random(2000, 4000));
@@ -319,16 +296,9 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
                     }
                     
                     // Click login button again
-                    const retryLoginButton = await page.$('.v-card__actions.text-center > button');
-                    if (retryLoginButton) {
-                        await cursor.move(retryLoginButton);
-                        await nodeTimer.setTimeout(_.random(500, 1200));
-                        await cursor.click();
-                    } else {
-                        log.warn('⚠️ Login button not found during retry');
-                        return;
-                    }
-
+                    await cursor.move('.v-card__actions.text-center > button');
+                    await nodeTimer.setTimeout(_.random(500, 1200));
+                    await cursor.click();
                     
                     // Check for dialog again
                     try {
